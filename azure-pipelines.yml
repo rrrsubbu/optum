@@ -1,37 +1,42 @@
 trigger:
-- main
+- main  # Trigger the pipeline when code is pushed to the main branch
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-latest'  # Use an Ubuntu virtual machine
+
+variables:
+  # ACR details
+  acrName: "optumacr"  # Replace with your ACR name
+  imageName: "myapp"  # Replace with the name of your Docker image
+  tag: "$(Build.BuildId)"  # Use the build ID as the image tag
 
 steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.x'
-
+# Step 1: Check out the code from the repository
 - task: Checkout@v2
-  displayName: 'Checkout repository'
+  displayName: 'Checkout source code'
 
+# Step 2: Log in to Azure Container Registry (ACR)
 - task: Docker@2
-  displayName: 'Login to Azure Container Registry'
+  displayName: 'Log in to ACR'
   inputs:
-    containerRegistry: '<your-acr-service-connection>'
+    containerRegistry: '$(acrName)'
     command: 'login'
 
+# Step 3: Build the Docker image
 - task: Docker@2
-  displayName: 'Build and push Docker image'
+  displayName: 'Build Docker image'
   inputs:
-    containerRegistry: '<your-acr-service-connection>'
-    repository: '<your-acr-name>/flask-app'
+    containerRegistry: $(acrName)
+    repository: '$(acrName).azurecr.io/$(imageName)'
     command: 'buildAndPush'
-    Dockerfile: 'Dockerfile'
+    Dockerfile: 'Dockerfile'  # Ensure you have a Dockerfile in the repo
     tags: |
-      $(Build.BuildId)
+      $(tag)
 
+# Step 4: Deploy the image to Azure Web App (optional)
 - task: AzureWebAppContainer@1
-  displayName: 'Deploy Docker image to Azure Web App'
+  displayName: 'Deploy image to Azure Web App'
   inputs:
-    azureSubscription: '<your-azure-subscription>'
-    appName: 'flask-app-webapp'  # Replace with your Azure Web App name
-    containers: |
-      <your-acr-name>/flask-app:$(Build.BuildId)
+    azureSubscription: '<your-azure-service-connection>'  # Replace with your Azure service connection
+    appName: 'optum-app'  # Replace with your Azure Web App name
+    containers: '$(acrName).azurecr.io/$(imageName):$(tag)'
