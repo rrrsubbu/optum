@@ -21,6 +21,13 @@ steps:
   inputs:
     containerRegistry: '$(acrName)'
     command: 'login'
+- task: Docker@2
+  inputs:
+    containerRegistry: '$(acrName)'
+    repository: '$(acrName).azurecr.io/$(imageName)'
+    command: 'buildAndPush'
+    Dockerfile: 'Dockerfile'
+    tags: '$(tag)'
 
 # Step 3: Build the Docker image
 - task: Docker@2
